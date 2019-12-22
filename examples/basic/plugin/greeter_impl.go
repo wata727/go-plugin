@@ -1,11 +1,15 @@
 package main
 
 import (
+	"encoding/gob"
+	"fmt"
 	"os"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-plugin"
-	"github.com/hashicorp/go-plugin/examples/basic/commons"
+	example "github.com/hashicorp/go-plugin/examples/basic/commons"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 )
 
 // Here is a real implementation of Greeter
@@ -13,9 +17,16 @@ type GreeterHello struct {
 	logger hclog.Logger
 }
 
-func (g *GreeterHello) Greet() string {
+func (g *GreeterHello) Greet(c *example.Client) string {
 	g.logger.Debug("message from GreeterHello.Greet")
-	return "Hello!"
+
+	attribute := c.WalkAttribute()
+	var val string
+	if err := c.EvaluateExpr(attribute.Expr, &val); err != nil {
+		panic(err)
+	}
+
+	return fmt.Sprintf("Hello! %s", val)
 }
 
 // handshakeConfigs are used to just do a basic handshake between
@@ -29,6 +40,12 @@ var handshakeConfig = plugin.HandshakeConfig{
 }
 
 func main() {
+	gob.Register(&hclsyntax.TemplateExpr{})
+	gob.Register(&hclsyntax.LiteralValueExpr{})
+	gob.Register(&hclsyntax.ScopeTraversalExpr{})
+	gob.Register(hcl.TraverseRoot{})
+	gob.Register(hcl.TraverseAttr{})
+
 	logger := hclog.New(&hclog.LoggerOptions{
 		Level:      hclog.Trace,
 		Output:     os.Stderr,

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/gob"
 	"fmt"
 	"log"
 	"os"
@@ -8,10 +9,18 @@ import (
 
 	hclog "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-plugin"
-	"github.com/hashicorp/go-plugin/examples/basic/commons"
+	example "github.com/hashicorp/go-plugin/examples/basic/commons"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 )
 
 func main() {
+	gob.Register(&hclsyntax.TemplateExpr{})
+	gob.Register(&hclsyntax.LiteralValueExpr{})
+	gob.Register(&hclsyntax.ScopeTraversalExpr{})
+	gob.Register(hcl.TraverseRoot{})
+	gob.Register(hcl.TraverseAttr{})
+
 	// Create an hclog.Logger
 	logger := hclog.New(&hclog.LoggerOptions{
 		Name:   "plugin",
@@ -43,7 +52,7 @@ func main() {
 	// We should have a Greeter now! This feels like a normal interface
 	// implementation but is in fact over an RPC connection.
 	greeter := raw.(example.Greeter)
-	fmt.Println(greeter.Greet())
+	fmt.Println(greeter.Greet(&example.Client{}))
 }
 
 // handshakeConfigs are used to just do a basic handshake between
